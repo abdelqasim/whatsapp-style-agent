@@ -1,0 +1,39 @@
+{
+  "name": "WhatsApp Agent — Daily Summary",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "cronExpression", "expression": "0 20 * * *" }]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Daily at 8 PM",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://backend:8000/summarize-and-send",
+        "options": { "timeout": 30000 }
+      },
+      "id": "send-summary",
+      "name": "Generate & Send Summary",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [480, 300]
+    }
+  ],
+  "connections": {
+    "Daily at 8 PM": {
+      "main": [[{ "node": "Generate & Send Summary", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "saveManualExecutions": true },
+  "staticData": null,
+  "tags": [],
+  "pinData": {},
+  "id": "daily-summary-workflow"
+}

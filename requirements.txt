@@ -1,0 +1,31 @@
+# ─── Web Framework ───────────────────────────────────────────────────────────
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+pydantic==2.8.2
+pydantic-settings==2.4.0
+python-dotenv==1.0.1
+httpx==0.27.2
+
+# ─── Haystack 2.x RAG Framework ──────────────────────────────────────────────
+haystack-ai==2.4.0
+qdrant-haystack==5.0.0
+
+# ─── Vector Database ─────────────────────────────────────────────────────────
+qdrant-client==1.11.0
+
+# ─── OpenAI ──────────────────────────────────────────────────────────────────
+openai==1.47.0
+
+# ─── Google Calendar ─────────────────────────────────────────────────────────
+google-api-python-client==2.143.0
+google-auth-httplib2==0.2.0
+google-auth-oauthlib==1.2.1
+
+# ─── Evaluation ──────────────────────────────────────────────────────────────
+ragas==0.1.21
+datasets==3.0.0
+pandas==2.2.3
+
+# ─── Utilities ───────────────────────────────────────────────────────────────
+python-dateutil==2.9.0
+pytz==2024.2

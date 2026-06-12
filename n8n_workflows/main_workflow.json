@@ -1,0 +1,618 @@
+{
+  "name": "WhatsApp Agent \u2014 Main Router",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "whatsapp",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "node-webhook-post",
+      "name": "WhatsApp Incoming Message",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        200,
+        300
+      ],
+      "webhookId": "whatsapp-post"
+    },
+    {
+      "parameters": {
+        "jsCode": "// \u2500\u2500 Extract message fields from Meta webhook payload \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nconst body = $input.first().json.body;\n\nconst entry = body?.entry?.[0];\nconst changes = entry?.changes?.[0];\nconst value = changes?.value;\nconst messages = value?.messages;\n\n// Ignore status updates, delivery receipts, etc.\nif (!messages || messages.length === 0) {\n  return [{ json: { skip: true, reason: 'no_messages' } }];\n}\n\nconst msg = messages[0];\n\n// Handle text messages\nif (msg.type === 'text') {\n  return [{\n    json: {\n      skip: false,\n      sender: msg.from,\n      messageText: msg.text.body,\n      messageId: msg.id,\n      timestamp: msg.timestamp,\n      isAudio: false\n    }\n  }];\n}\n\n// Handle audio/voice messages \u2014 flag for transcription\nif (msg.type === 'audio') {\n  return [{\n    json: {\n      skip: false,\n      sender: msg.from,\n      messageText: '',\n      messageId: msg.id,\n      timestamp: msg.timestamp,\n      isAudio: true,\n      mediaId: msg.audio.id,\n      mimeType: msg.audio.mime_type || 'audio/ogg'\n    }\n  }];\n}\n\n// Skip unsupported message types (image, video, sticker, etc.)\nreturn [{ json: { skip: true, reason: 'unsupported_type: ' + msg.type } }];"
+      },
+      "id": "node-extract",
+      "name": "Extract Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        420,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-skip",
+              "leftValue": "={{ $json.skip }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "node-skip-check",
+      "name": "Skip?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        640,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"status\": \"ok\" }"
+      },
+      "id": "node-respond-ok",
+      "name": "Respond 200 OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        860,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-audio",
+              "leftValue": "={{ $json.isAudio }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "node-is-audio",
+      "name": "Is Audio?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        750,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://backend:8000/transcribe",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ media_id: $json.mediaId, sender: $json.sender }) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "node-transcribe",
+      "name": "Transcribe Audio",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        950,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Replace empty messageText with the transcribed text\nconst transcription = $input.first().json;\nconst original = $('Extract Message').item.json;\n\nreturn [{\n  json: {\n    skip: false,\n    sender: original.sender,\n    messageText: transcription.text || '[Voice note could not be transcribed]',\n    messageId: original.messageId,\n    timestamp: original.timestamp,\n    isAudio: true,\n    audioLanguage: transcription.language || 'unknown',\n    audioDuration: transcription.duration || 0\n  }\n}];"
+      },
+      "id": "node-merge-transcription",
+      "name": "Merge Transcription",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1150,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://backend:8000/classify-intent",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ message: $json.messageText, sender: $json.sender }) }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "node-classify",
+      "name": "Classify Intent",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1080,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Merge intent result with original message fields so downstream nodes have both\n// IMPORTANT: For audio messages, messageText in 'Extract Message' is empty \u2014\n// the transcribed text is in 'Merge Transcription'. We must handle both paths.\nconst intentResult = $input.first().json;\n\nlet sender, messageText;\ntry {\n  // Audio path: transcribed text is in Merge Transcription\n  const merged = $('Merge Transcription').item.json;\n  sender = merged.sender;\n  messageText = merged.messageText;\n} catch(e) {\n  // Text path: original message is in Extract Message\n  const extracted = $('Extract Message').item.json;\n  sender = extracted.sender;\n  messageText = extracted.messageText;\n}\n\nreturn [{\n  json: {\n    sender,\n    messageText,\n    intent: intentResult.intent,\n    confidence: intentResult.confidence\n  }\n}];"
+      },
+      "id": "node-merge-intent",
+      "name": "Attach Intent to Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1260,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "rules",
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "cond-knowledge",
+                    "leftValue": "={{ $json.intent }}",
+                    "rightValue": "knowledge_query",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "knowledge_query"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "cond-scheduling",
+                    "leftValue": "={{ $json.intent }}",
+                    "rightValue": "scheduling",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "scheduling"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "cond-casual",
+                    "leftValue": "={{ $json.intent }}",
+                    "rightValue": "casual_chat",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "casual_chat"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "id": "node-switch",
+      "name": "Route by Intent",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.1,
+      "position": [
+        1460,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://backend:8000/rag-query",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ question: $json.messageText, sender: $json.sender }) }}",
+        "options": {
+          "timeout": 20000
+        }
+      },
+      "id": "node-rag",
+      "name": "RAG Query",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1680,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://backend:8000/schedule",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ message: $json.messageText, sender: $json.sender }) }}",
+        "options": {
+          "timeout": 20000
+        }
+      },
+      "id": "node-schedule",
+      "name": "Schedule Meeting",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1680,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://backend:8000/style-response",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ message: $json.messageText, sender: $json.sender }) }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "node-style",
+      "name": "Style-Adaptive Response",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1680,
+        580
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract the reply text regardless of which endpoint responded\n// RAG returns {answer, grounded, sources}\n// Schedule returns {reply, event_created, event_link}\n// Style returns {reply, tone, examples_used}\nconst data = $input.first().json;\n\nconst replyText = data.answer || data.reply || 'Sorry, I was unable to process your request.';\nconst grounded = data.grounded !== undefined ? data.grounded : true;\n\n// Get message context from Attach Intent node (works for both text & audio paths)\nconst ctx = $('Attach Intent to Message').item.json;\nconst sender = ctx.sender;\nconst intent = ctx.intent;\nconst incoming = ctx.messageText;\n\nreturn [{ json: { replyText, grounded, sender, intent, incoming } }];"
+      },
+      "id": "node-extract-reply",
+      "name": "Extract Reply Text",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1900,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v19.0/YOUR_PHONE_NUMBER_ID/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_WHATSAPP_TOKEN_HERE"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ messaging_product: 'whatsapp', to: $json.sender, type: 'text', text: { body: $json.replyText } }) }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "node-send-wa",
+      "name": "Send WhatsApp Reply",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2120,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://backend:8000/log-interaction",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ sender: $('Extract Reply Text').item.json.sender, incoming: $('Extract Reply Text').item.json.incoming, intent: $('Extract Reply Text').item.json.intent, reply: $('Extract Reply Text').item.json.replyText, grounded: $('Extract Reply Text').item.json.grounded }) }}",
+        "options": {
+          "timeout": 5000
+        }
+      },
+      "id": "node-log",
+      "name": "Log Interaction",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2340,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"status\": \"ok\" }"
+      },
+      "id": "node-respond-final",
+      "name": "Respond 200 to Meta",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        2560,
+        420
+      ]
+    }
+  ],
+  "connections": {
+    "WhatsApp Incoming Message": {
+      "main": [
+        [
+          {
+            "node": "Extract Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Message": {
+      "main": [
+        [
+          {
+            "node": "Skip?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Skip?": {
+      "main": [
+        [
+          {
+            "node": "Respond 200 OK",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Is Audio?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Audio?": {
+      "main": [
+        [
+          {
+            "node": "Transcribe Audio",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Classify Intent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcribe Audio": {
+      "main": [
+        [
+          {
+            "node": "Merge Transcription",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Transcription": {
+      "main": [
+        [
+          {
+            "node": "Classify Intent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classify Intent": {
+      "main": [
+        [
+          {
+            "node": "Attach Intent to Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Attach Intent to Message": {
+      "main": [
+        [
+          {
+            "node": "Route by Intent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Intent": {
+      "main": [
+        [
+          {
+            "node": "RAG Query",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Schedule Meeting",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Style-Adaptive Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Style-Adaptive Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RAG Query": {
+      "main": [
+        [
+          {
+            "node": "Extract Reply Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Meeting": {
+      "main": [
+        [
+          {
+            "node": "Extract Reply Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Style-Adaptive Response": {
+      "main": [
+        [
+          {
+            "node": "Extract Reply Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Reply Text": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send WhatsApp Reply": {
+      "main": [
+        [
+          {
+            "node": "Log Interaction",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Interaction": {
+      "main": [
+        [
+          {
+            "node": "Respond 200 to Meta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "saveExecutionProgress": true,
+    "errorWorkflow": ""
+  },
+  "staticData": null,
+  "tags": [],
+  "pinData": {},
+  "id": "main-whatsapp-router"
+}

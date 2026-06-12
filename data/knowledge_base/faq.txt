@@ -1,0 +1,114 @@
+FREQUENTLY ASKED QUESTIONS
+
+===== Working Hours =====
+Our team is available Monday through Friday, 9:00 AM to 6:00 PM (Istanbul time, GMT+3).
+We do not operate on public holidays or weekends.
+For urgent matters outside working hours, please email abdel.qasim@bahcesehir.edu.tr.
+Saturday and Sunday are considered weekends and the office is closed.
+
+===== Meeting Scheduling Policy =====
+Meetings can be booked Monday through Friday between 10:00 AM and 5:00 PM.
+Each meeting slot is 60 minutes by default unless otherwise specified.
+Please request a meeting at least 24 hours in advance.
+Meetings can be cancelled or rescheduled up to 2 hours before the start time.
+Back-to-back meetings are allowed but a 15-minute buffer is recommended.
+Group meetings of more than 5 participants should be booked through the office manager.
+
+===== Pricing and Plans =====
+We offer three pricing tiers:
+- Starter: Free, up to 5 users, basic features, community support
+- Pro: $29/month per user, all features, priority support, API access, advanced analytics
+- Enterprise: Custom pricing, dedicated account manager, SLA guarantees, custom integrations, SSO
+Annual billing provides a 20% discount on Pro and Enterprise plans.
+All plans come with a 14-day free trial, no credit card required.
+Students and non-profits receive a 50% discount on Pro plans — contact sales@example.com.
+
+===== Return and Refund Policy =====
+Refund requests must be submitted within 14 days of purchase.
+To initiate a refund, contact billing@example.com with your order ID.
+Refunds are processed within 5-7 business days.
+Subscription fees are non-refundable after the first 7 days of the billing cycle.
+Partial refunds are available for unused months on annual plans.
+
+===== Technical Support =====
+Tier-1 support (basic issues): handled via WhatsApp and email, response within 4 hours.
+Tier-2 support (advanced issues): requires a scheduled call, response within 24 hours.
+Tier-3 support (critical/enterprise): dedicated engineer assigned, response within 1 hour.
+For critical production incidents, call our hotline: +966-XX-XXXXXXX.
+Status page: status.example.com
+Support is available in English, Arabic, and Turkish.
+
+===== Account Management =====
+To reset your password, go to app.example.com/reset and enter your registered email.
+Two-factor authentication (2FA) is enabled by default for all accounts.
+Account deletion requests take 30 days to process and cannot be reversed.
+To change your email address, go to Settings > Account > Email.
+To upgrade your plan, go to Settings > Billing > Change Plan.
+
+===== Data Privacy =====
+All user data is stored in compliance with GDPR and Saudi data protection regulations (PDPL).
+Data is encrypted at rest (AES-256) and in transit (TLS 1.3).
+We do not share user data with third parties without explicit consent.
+Data retention period: 2 years after account closure.
+Users can request a full export of their data at any time via Settings > Privacy > Export Data.
+Cookie consent is required for all non-essential tracking.
+
+===== Onboarding =====
+New users receive a welcome email with a getting-started guide within 1 hour of sign-up.
+Onboarding calls are available for Pro and Enterprise users — book via the dashboard.
+Video tutorials are available at help.example.com.
+The onboarding process typically takes 1-2 business days.
+A dedicated onboarding specialist is assigned to Enterprise customers.
+
+===== API and Integrations =====
+API documentation is available at docs.example.com/api.
+API access is included in Pro and Enterprise plans.
+Rate limits: Starter = 100 requests/hour, Pro = 10,000 requests/hour, Enterprise = unlimited.
+Supported integrations: Slack, Microsoft Teams, Google Workspace, Salesforce, HubSpot, Zapier.
+Webhooks are available for real-time event notifications.
+SDKs are available for Python, JavaScript, and Java.
+
+===== Company Information =====
+Company Name: Example Technologies Ltd.
+Founded: 2022
+Headquarters: Riyadh, Saudi Arabia
+Regional Offices: Istanbul (Turkey), Dubai (UAE), Cairo (Egypt)
+Total Employees: 50+
+Industry: SaaS / Business Automation
+Website: www.example.com
+
+===== Contact Information =====
+General inquiries: info@example.com
+Sales: sales@example.com
+Billing: billing@example.com
+Technical support: abdel.qasim@bahcesehir.edu.tr
+WhatsApp: +966-XX-XXXXXXX
+LinkedIn: linkedin.com/company/example-tech
+Twitter/X: @exampletech
+
+===== Services Offered =====
+1. Business Communication Automation — AI-powered messaging for WhatsApp, email, and SMS
+2. Meeting & Calendar Management — Automated scheduling with conflict detection
+3. Knowledge Base Management — Document indexing, search, and retrieval
+4. Analytics & Reporting — Daily summaries, conversation analytics, performance metrics
+5. Custom AI Solutions — Tailored conversational agents for specific business needs
+
+===== Frequently Asked Specific Questions =====
+
+Q: How do I get started?
+A: Sign up at app.example.com, choose your plan, and follow the onboarding guide. You'll be up and running in under 30 minutes.
+
+Q: Can I switch between plans?
+A: Yes, you can upgrade or downgrade at any time. Changes take effect at the start of your next billing cycle.
+
+Q: Do you offer custom solutions?
+A: Yes, our Enterprise plan includes custom integrations and dedicated development support. Contact sales@example.com for more details.
+
+Q: What languages do you support?
+A: Our platform fully supports English, Arabic, and Turkish. Additional languages can be added upon request for Enterprise customers.
+
+Q: Is there a mobile app?
+A: Yes, our mobile app is available on iOS and Android. Download it from the App Store or Google Play.
+
+Q: How secure is my data?
+A: We use enterprise-grade security including AES-256 encryption at rest, TLS 1.3 in transit, SOC 2 Type II compliance, and regular third-party security audits.

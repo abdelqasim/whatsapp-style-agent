@@ -1,0 +1,69 @@
+version: "3.8"
+
+services:
+  # ─── Qdrant Vector Database ───────────────────────────────────────────────
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: capstone_qdrant
+    restart: unless-stopped
+    ports:
+      - "6333:6333"   # REST API
+      - "6334:6334"   # gRPC
+    volumes:
+      - qdrant_data:/qdrant/storage
+    environment:
+      - QDRANT__SERVICE__GRPC_PORT=6334
+
+  # ─── n8n Workflow Automation ──────────────────────────────────────────────
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: capstone_n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_HOST=${N8N_HOST:-localhost}
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=${N8N_PROTOCOL:-http}
+      - WEBHOOK_URL=${WEBHOOK_URL}
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
+      - GENERIC_TIMEZONE=Europe/Istanbul
+      - N8N_SECURE_COOKIE=false
+      - N8N_RESTRICT_ENVIRONMENT_VARIABLES_ACCESS=false
+      - N8N_BLOCK_ENV_ACCESS_IN_NODE=false
+      # Passed through so n8n workflows can access via $env.VAR_NAME
+      - WHATSAPP_TOKEN=${WHATSAPP_TOKEN}
+      - WHATSAPP_PHONE_NUMBER_ID=${WHATSAPP_PHONE_NUMBER_ID}
+      - ADMIN_PHONE_NUMBER=${ADMIN_PHONE_NUMBER}
+      - BACKEND_URL=${BACKEND_URL:-http://backend:8000}
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./n8n_workflows:/home/node/workflows
+    depends_on:
+      - qdrant
+
+  # ─── Python Backend (FastAPI) ─────────────────────────────────────────────
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: capstone_backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - WHATSAPP_TOKEN=${WHATSAPP_TOKEN}
+      - WHATSAPP_PHONE_NUMBER_ID=${WHATSAPP_PHONE_NUMBER_ID}
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6333
+      - GOOGLE_CALENDAR_CREDENTIALS=${GOOGLE_CALENDAR_CREDENTIALS}
+    volumes:
+      - ./data:/app/data
+      - ./src:/app/src
+    depends_on:
+      - qdrant
+
+volumes:
+  qdrant_data:
+  n8n_data:

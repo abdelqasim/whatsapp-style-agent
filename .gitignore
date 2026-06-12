@@ -1,0 +1,33 @@
+# Environment & secrets
+.env
+.env.local
+.env.production
+
+# Google OAuth credentials
+data/google_credentials.json
+data/google_token.json
+
+# Conversation logs (contain private data)
+data/conversation_logs/
+data/followups.json
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# IDE & tools
+.DS_Store
+.claude/
+*.log
+
+# n8n local data
+.n8n/
